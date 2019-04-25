@@ -8,10 +8,10 @@ import {
   assign,
   compareArray,
   isNumber,
-  isString,
-  round
+  isString
 } from "./utils.js";
 import NestedMap from "./nested-map.js";
+import { Field } from "./fields.js";
 
 /**
  * Default formatter
@@ -88,7 +88,7 @@ assign(Qty.prototype, {
 
     var out = this.to(targetUnits);
 
-    var outScalar = maxDecimals !== undefined ? round(out.scalar, maxDecimals) : out.scalar;
+    var outScalar = maxDecimals !== undefined ? Field.roundTo(out.scalar, maxDecimals) : out.scalar;
     out = (outScalar + " " + out.units()).trim();
     return out;
   },

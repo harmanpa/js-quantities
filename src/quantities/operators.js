@@ -1,7 +1,8 @@
 import Qty from "./constructor.js";
 import QtyError, { throwIncompatibleUnits } from "./error.js";
 import { PREFIX_VALUES, UNITY, UNITY_ARRAY } from "./definitions.js";
-import { assign, isNumber, isString, mulSafe, divSafe } from "./utils.js";
+import { assign, isNumber, isString } from "./utils.js";
+import { Field } from "./fields.js";
 import {
   addTempDegrees,
   subtractTempDegrees,
@@ -29,7 +30,7 @@ assign(Qty.prototype, {
       return addTempDegrees(other, this);
     }
 
-    return Qty({"scalar": this.scalar + other.to(this).scalar, "numerator": this.numerator, "denominator": this.denominator});
+    return Qty({"scalar": Field.add(this.scalar, other.to(this).scalar), "numerator": this.numerator, "denominator": this.denominator});
   },
 
   sub: function(other) {
@@ -51,12 +52,15 @@ assign(Qty.prototype, {
       throw new QtyError("Cannot subtract a temperature from a differential degree unit");
     }
 
-    return Qty({"scalar": this.scalar - other.to(this).scalar, "numerator": this.numerator, "denominator": this.denominator});
+    return Qty({"scalar": Field.sub(this.scalar, other.to(this).scalar), "numerator": this.numerator, "denominator": this.denominator});
   },
 
   mul: function(other) {
-    if (isNumber(other)) {
-      return Qty({"scalar": mulSafe(this.scalar, other), "numerator": this.numerator, "denominator": this.denominator});
+    if (Field.isMember(other)) {
+      return Qty({"scalar": Field.mulSafe(this.scalar, other), "numerator": this.numerator, "denominator": this.denominator});
+    }
+    else if (isNumber(other)) {
+      return Qty({"scalar": Field.mulSafe(this.scalar, Field.fromNumber(other)), "numerator": this.numerator, "denominator": this.denominator});
     }
     else if (isString(other)) {
       other = Qty(other);
@@ -77,21 +81,27 @@ assign(Qty.prototype, {
     }
     var numdenscale = cleanTerms(op1.numerator, op1.denominator, op2.numerator, op2.denominator);
 
-    return Qty({"scalar": mulSafe(op1.scalar, op2.scalar, numdenscale[2]), "numerator": numdenscale[0], "denominator": numdenscale[1]});
+    return Qty({"scalar": Field.mulSafe(op1.scalar, op2.scalar, numdenscale[2]), "numerator": numdenscale[0], "denominator": numdenscale[1]});
   },
 
   div: function(other) {
-    if (isNumber(other)) {
+    if (Field.isMember(other)) {
+      if (Field.isExactlyZero(other)) {
+        throw new QtyError("Divide by zero");
+      }
+      return Qty({"scalar": Field.div(this.scalar, other), "numerator": this.numerator, "denominator": this.denominator});
+    }
+    else if (isNumber(other)) {
       if (other === 0) {
         throw new QtyError("Divide by zero");
       }
-      return Qty({"scalar": this.scalar / other, "numerator": this.numerator, "denominator": this.denominator});
+      return Qty({"scalar": Field.div(this.scalar, Field.fromNumber(other)), "numerator": this.numerator, "denominator": this.denominator});
     }
     else if (isString(other)) {
       other = Qty(other);
     }
 
-    if (other.scalar === 0) {
+    if (Field.isExactlyZero(other.scalar)) {
       throw new QtyError("Divide by zero");
     }
 
@@ -113,7 +123,7 @@ assign(Qty.prototype, {
     }
     var numdenscale = cleanTerms(op1.numerator, op1.denominator, op2.denominator, op2.numerator);
 
-    return Qty({"scalar": mulSafe(op1.scalar, numdenscale[2]) / op2.scalar, "numerator": numdenscale[0], "denominator": numdenscale[1]});
+    return Qty({"scalar": Field.div(Field.mulSafe(op1.scalar, numdenscale[2]), op2.scalar), "numerator": numdenscale[0], "denominator": numdenscale[1]});
   },
 
   // Returns a Qty that is the inverse of this Qty,
@@ -121,10 +131,10 @@ assign(Qty.prototype, {
     if (this.isTemperature()) {
       throw new QtyError("Cannot divide with temperatures");
     }
-    if (this.scalar === 0) {
+    if (Field.isExactlyZero(this.scalar)) {
       throw new QtyError("Divide by zero");
     }
-    return Qty({"scalar": 1 / this.scalar, "numerator": this.denominator, "denominator": this.numerator});
+    return Qty({"scalar": Field.inverse(this.scalar), "numerator": this.denominator, "denominator": this.numerator});
   }
 });
 
@@ -142,6 +152,7 @@ function cleanTerms(num1, den1, num2, den2) {
 
   function combineTerms(terms, direction) {
     var k;
+    var j;
     var prefix;
     var prefixValue;
     for (var i = 0; i < terms.length; i++) {
@@ -154,16 +165,17 @@ function cleanTerms(num1, den1, num2, den2) {
       else {
         k = terms[i];
         prefix = null;
-        prefixValue = 1;
+        prefixValue = Field.one();
       }
       if (k && k !== UNITY) {
         if (combined[k]) {
           combined[k][0] += direction;
-          var combinedPrefixValue = combined[k][2] ? PREFIX_VALUES[combined[k][2]] : 1;
-          combined[k][direction === 1 ? 3 : 4] *= divSafe(prefixValue, combinedPrefixValue);
+          var combinedPrefixValue = combined[k][2] ? PREFIX_VALUES[combined[k][2]] : Field.one();
+          j = direction === 1 ? 3 : 4;
+          combined[k][j] = Field.mul(combined[k][j], Field.divSafe(prefixValue, combinedPrefixValue));
         }
         else {
-          combined[k] = [direction, k, prefix, 1, 1];
+          combined[k] = [direction, k, prefix, Field.one(), Field.one()];
         }
       }
     }
@@ -176,7 +188,7 @@ function cleanTerms(num1, den1, num2, den2) {
 
   var num = [];
   var den = [];
-  var scale = 1;
+  var scale = Field.one();
 
   for (var prop in combined) {
     if (combined.hasOwnProperty(prop)) {
@@ -192,7 +204,7 @@ function cleanTerms(num1, den1, num2, den2) {
           den.push(item[2] === null ? item[1] : [item[2], item[1]]);
         }
       }
-      scale *= divSafe(item[3], item[4]);
+      scale = Field.mul(scale, Field.divSafe(item[3], item[4]));
     }
   }
 

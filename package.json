@@ -42,5 +42,8 @@
     "jscs": "^2.7.0",
     "jshint": "^2.9.0",
     "rollup": "~0.57"
+  },
+  "dependencies": {
+    "decimal.js": "^10.1.1"
   }
 }

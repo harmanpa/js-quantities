@@ -1,6 +1,7 @@
 import { isString } from "./utils.js";
 import QtyError from "./error.js";
 import { PREFIX_MAP, UNIT_MAP } from "./definitions.js";
+import { Field } from "./fields.js";
 
 var SIGN = "[+-]";
 var INTEGER = "\\d+";
@@ -49,10 +50,10 @@ export default function parse(val) {
   if (scalarMatch) {
     // Allow whitespaces between sign and scalar for loose parsing
     scalarMatch = scalarMatch.replace(/\s/g, "");
-    this.scalar = parseFloat(scalarMatch);
+    this.scalar = Field.fromString(scalarMatch);
   }
   else {
-    this.scalar = 1;
+    this.scalar = Field.one();
   }
   var top = result[2];
   var bottom = result[3];

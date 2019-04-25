@@ -14,7 +14,8 @@ export function isString(value) {
  * To be dropped when ES6 is finalized. Obsolete browsers will
  * have to use ES6 polyfills.
  */
-var isFiniteImpl = Number.isFinite || window.isFinite;
+const isFiniteImpl = Number.isFinite || window.isFinite;
+
 /**
  * Tests if a value is a number
  *

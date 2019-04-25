@@ -1,13 +1,12 @@
 import Qty from "./constructor.js";
+import { Field } from "./fields.js";
 import { PREFIX_VALUES, UNIT_VALUES } from "./definitions.js";
 import {toDegrees, toTemp, toTempK } from "./temperature.js";
 import {
   assign,
-  divSafe,
   identity,
   isNumber,
-  isString,
-  mulSafe
+  isString
 } from "./utils.js";
 import QtyError, { throwIncompatibleUnits } from "./error.js";
 
@@ -66,7 +65,7 @@ assign(Qty.prototype, {
         target = toDegrees(this,target);
       }
       else {
-        var q = divSafe(this.baseScalar, target.baseScalar);
+        var q = Field.divSafe(this.baseScalar, target.baseScalar);
         target = Qty({"scalar": q, "numerator": target.numerator, "denominator": target.denominator});
       }
     }
@@ -97,7 +96,7 @@ assign(Qty.prototype, {
   // Converts the unit back to a float if it is unitless.  Otherwise raises an exception
   toFloat: function() {
     if (this.isUnitless()) {
-      return this.scalar;
+      return Field.toNumber(this.scalar);
     }
     throw new QtyError("Can't convert to Float unless unitless.  Use Unit#scalar");
   },
@@ -133,14 +132,14 @@ assign(Qty.prototype, {
       throwIncompatibleUnits(this.units(), precQuantity.units());
     }
 
-    if (precQuantity.scalar === 0) {
+    if (Field.isExactlyZero(precQuantity.scalar)) {
       throw new QtyError("Divide by zero");
     }
 
-    var precRoundedResult = mulSafe(Math.round(this.scalar / precQuantity.scalar),
+    var precRoundedResult = Field.mulSafe(Field.round(Field.div(this.scalar, precQuantity.scalar)),
                                        precQuantity.scalar);
 
-    return Qty(precRoundedResult + this.units());
+    return Qty(precRoundedResult, this.units());
   }
 });
 
@@ -177,7 +176,7 @@ export function swiftConverter(srcUnits, dstUnits) {
   var convert;
   if (!srcQty.isTemperature()) {
     convert = function(value) {
-      return value * srcQty.baseScalar / dstQty.baseScalar;
+      return Field.mul(value, Field.div(srcQty.baseScalar, dstQty.baseScalar));
     };
   }
   else {
@@ -210,18 +209,18 @@ var baseUnitCache = {};
 function toBaseUnits (numerator,denominator) {
   var num = [];
   var den = [];
-  var q = 1;
+  var q = Field.one();
   var unit;
   for (var i = 0; i < numerator.length; i++) {
     unit = numerator[i];
     if (PREFIX_VALUES[unit]) {
       // workaround to fix
       // 0.1 * 0.1 => 0.010000000000000002
-      q = mulSafe(q, PREFIX_VALUES[unit]);
+      q = Field.mulSafe(q, PREFIX_VALUES[unit]);
     }
     else {
       if (UNIT_VALUES[unit]) {
-        q *= UNIT_VALUES[unit].scalar;
+        q = Field.mul(q, UNIT_VALUES[unit].scalar);
 
         if (UNIT_VALUES[unit].numerator) {
           num.push(UNIT_VALUES[unit].numerator);
@@ -235,11 +234,11 @@ function toBaseUnits (numerator,denominator) {
   for (var j = 0; j < denominator.length; j++) {
     unit = denominator[j];
     if (PREFIX_VALUES[unit]) {
-      q /= PREFIX_VALUES[unit];
+      q = Field.div(q, PREFIX_VALUES[unit]);
     }
     else {
       if (UNIT_VALUES[unit]) {
-        q /= UNIT_VALUES[unit].scalar;
+        q = Field.div(q, UNIT_VALUES[unit].scalar);
 
         if (UNIT_VALUES[unit].numerator) {
           den.push(UNIT_VALUES[unit].numerator);

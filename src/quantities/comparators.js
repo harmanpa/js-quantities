@@ -1,6 +1,7 @@
 import Qty from "./constructor.js";
 import { assign, isString } from "./utils.js";
 import { throwIncompatibleUnits } from "./error.js";
+import { Field } from "./fields.js";
 
 assign(Qty.prototype, {
   eq: function(other) {
@@ -42,13 +43,13 @@ assign(Qty.prototype, {
     if (!this.isCompatible(other)) {
       throwIncompatibleUnits(this.units(), other.units());
     }
-    if (this.baseScalar < other.baseScalar) {
+    if (Field.lt(this.baseScalar, other.baseScalar)) {
       return -1;
     }
-    else if (this.baseScalar === other.baseScalar) {
+    else if (Field.eq(this.baseScalar, other.baseScalar)) {
       return 0;
     }
-    else if (this.baseScalar > other.baseScalar) {
+    else if (Field.gt(this.baseScalar, other.baseScalar)) {
       return 1;
     }
   },
@@ -57,6 +58,6 @@ assign(Qty.prototype, {
   // Unit("100 cm").same(Unit("100 cm"))  # => true
   // Unit("100 cm").same(Unit("1 m"))     # => false
   same: function(other) {
-    return (this.scalar === other.scalar) && (this.units() === other.units());
+    return (Field.eq(this.scalar, other.scalar)) && (this.units() === other.units());
   }
 });

@@ -1,3 +1,4 @@
+import { Field } from "./fields.js";
 import { UNITY_ARRAY } from "./definitions.js";
 import { unitSignature } from "./signature.js";
 import parse from "./parse.js";
@@ -34,13 +35,13 @@ export default function Qty(initValue, initUnits) {
   this.denominator = UNITY_ARRAY;
 
   if (isDefinitionObject(initValue)) {
-    this.scalar = initValue.scalar;
+    this.scalar = Field.isMember(initValue.scalar) ? initValue.scalar : Field.fromNumber(initValue.scalar);
     this.numerator = (initValue.numerator && initValue.numerator.length !== 0) ? initValue.numerator : UNITY_ARRAY;
     this.denominator = (initValue.denominator && initValue.denominator.length !== 0) ? initValue.denominator : UNITY_ARRAY;
   }
   else if (initUnits) {
     parse.call(this, initUnits);
-    this.scalar = initValue;
+    this.scalar = Field.isMember(initValue) ? initValue : Field.fromNumber(initValue);
   }
   else {
     parse.call(this, initValue);
@@ -62,7 +63,7 @@ export default function Qty(initValue, initUnits) {
   this.initValue = initValue;
   updateBaseScalar.call(this);
 
-  if (this.isTemperature() && this.baseScalar < 0) {
+  if (this.isTemperature() && Field.lt(this.baseScalar, Field.zero())) {
     throw new QtyError("Temperatures must not be less than absolute zero");
   }
 }
@@ -70,6 +71,7 @@ export default function Qty(initValue, initUnits) {
 Qty.prototype = {
   // Properly set up constructor
   constructor: Qty,
+  field: Field
 };
 
 /**
@@ -82,13 +84,14 @@ Qty.prototype = {
  */
 function assertValidConstructorArgs(value, units) {
   if (units) {
-    if (!(isNumber(value) && isString(units))) {
+    if (!((Field.isMember(value) || isNumber(value)) && isString(units))) {
       throw new QtyError("Only number accepted as initialization value " +
                          "when units are explicitly provided");
     }
   }
   else {
     if (!(isString(value) ||
+          Field.isMember(value) ||
           isNumber(value) ||
           isQty(value)    ||
           isDefinitionObject(value))) {

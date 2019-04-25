@@ -1,4 +1,4 @@
-/* global __dirname, describe, expect, it, require, beforeEach, afterEach */
+/* global __dirname, describe, expect, it, require, beforeEach, afterEach, jasmine */
 var Qty;
 /*
  * Needed when run through jasmine-node
@@ -8,72 +8,95 @@ if (typeof window === "undefined") {
 }
 
 describe("js-quantities", function() {
+  var field = Qty.prototype.field;
+  var one = field.one();
+  var n = field.fromNumber;
+  var div = field.div;
+  var sub = field.sub;
+  var abs = field.abs;
+  var lt = field.lt;
+  var pow = field.pow;
+  var env = jasmine.getEnv();
+  env.addEqualityTester(function(a, b) {
+    if (!(field.isMember(a) && field.isMember(b))) {
+      return;
+    }
+    return field.eq(a,b);
+  });
 
   describe("initialization", function() {
+    beforeEach(function() {
+      this.addMatchers({
+        toBeCloseInFieldTo: function(expected, precision) {
+          return lt(abs(sub(this.actual, expected)), pow(n(10),n(-precision)));
+        }
+      });
+    });
+
     it("should create unit only", function() {
       var qty = Qty("m");
       expect(qty.numerator).toEqual(["<meter>"]);
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
     });
 
     it("should create unitless", function() {
       var qty = Qty("1");
-      expect(qty.toFloat()).toBe(1);
+      expect(qty.toFloat()).toEqual(1);
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<1>"]);
       qty = Qty("1.5");
-      expect(qty.toFloat()).toBe(1.5);
+      expect(qty.toFloat()).toEqual(1.5);
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("should create unitless from numbers", function() {
       var qty = Qty(1.5);
-      expect(qty.toFloat()).toBe(1.5);
+      expect(qty.toFloat()).toEqual(1.5);
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("should create from numbers with explicit units", function() {
       var qty = Qty(1.5, "m");
-      expect(qty.scalar).toBe(1.5);
+      expect(qty.scalar).toEqual(n(1.5));
       expect(qty.numerator).toEqual(["<meter>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("temperatures should have base unit in kelvin", function() {
       var qty = Qty("1 tempK").toBase();
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.units()).toBe("tempK");
 
       qty = Qty("1 tempR").toBase();
-      expect(qty.scalar).toBe(5 / 9);
+      expect(qty.scalar).toEqual(div(n(5), n(9)));
       expect(qty.units()).toBe("tempK");
 
       qty = Qty("0 tempC").toBase();
-      expect(qty.scalar).toBe(273.15);
+      expect(qty.scalar).toEqual(n(273.15));
       expect(qty.units()).toBe("tempK");
 
       qty = Qty("0 tempF").toBase();
-      expect(qty.scalar).toBeCloseTo(255.372, 3);
+      expect(qty.scalar).toBeCloseInFieldTo(n(255.372), 3);
       expect(qty.units()).toBe("tempK");
     });
 
     it("temperature degrees should have base unit in kelvin", function() {
       var qty = Qty("1 degK").toBase();
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.units()).toBe("degK");
 
       qty = Qty("1 degR").toBase();
-      expect(qty.scalar).toBe(5 / 9);
+      expect(qty.scalar).toEqual(div(n(5), n(9)));
       expect(qty.units()).toBe("degK");
 
       qty = Qty("1 degC").toBase();
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.units()).toBe("degK");
 
       qty = Qty("1 degF").toBase();
-      expect(qty.scalar).toBe(5 / 9);
+      expect(qty.scalar).toEqual(div(n(5),n(9)));
       expect(qty.units()).toBe("degK");
     });
 
@@ -119,84 +142,84 @@ describe("js-quantities", function() {
 
     it("should create simple", function() {
       var qty = Qty("1m");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.numerator).toEqual(["<meter>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("should create negative", function() {
       var qty = Qty("-1m");
-      expect(qty.scalar).toBe(-1);
+      expect(qty.scalar).toEqual(n(-1));
       expect(qty.numerator).toEqual(["<meter>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("should create compound", function() {
       var qty = Qty("1 N*m");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.numerator).toEqual(["<newton>", "<meter>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("should create pressure units in term of height of water", function() {
       var qty = Qty("1 inH2O");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.numerator).toEqual(["<inh2o>"]);
 
       qty = Qty("1 cmH2O");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.numerator).toEqual(["<cmh2o>"]);
     });
 
     it("should create with denominator", function() {
       var qty = Qty("1 m/s");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(one);
       expect(qty.numerator).toEqual(["<meter>"]);
       expect(qty.denominator).toEqual(["<second>"]);
     });
 
     it("should create with denominator only", function() {
       var qty = Qty("1 /s");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<second>"]);
 
       qty = Qty("1 1/s");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<second>"]);
 
       qty = Qty("1 s^-1");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<second>"]);
     });
 
     it("should create with powers", function() {
       var qty = Qty("1 m^2/s^2");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<meter>","<meter>"]);
       expect(qty.denominator).toEqual(["<second>","<second>"]);
       qty = Qty("1 m^2 kg^2 J^2/s^2");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<meter>","<meter>","<kilogram>","<kilogram>","<joule>","<joule>"]);
       expect(qty.denominator).toEqual(["<second>","<second>"]);
       qty = Qty("1 m^2/s^2*J^3");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<meter>","<meter>"]);
       expect(qty.denominator).toEqual(["<second>","<second>","<joule>","<joule>","<joule>"]);
     });
 
     it("should create with zero power", function() {
       var qty = Qty("1 m^0");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<1>"]);
       expect(qty.denominator).toEqual(["<1>"]);
     });
 
     it("should create with negative powers", function() {
       var qty = Qty("1 m^2 s^-2");
-      expect(qty.scalar).toBe(1);
+      expect(qty.scalar).toEqual(n(1));
       expect(qty.numerator).toEqual(["<meter>","<meter>"]);
       expect(qty.denominator).toEqual(["<second>","<second>"]);
       expect(qty.same(Qty("1 m^2/s^2"))).toBe(true);
@@ -310,10 +333,10 @@ describe("js-quantities", function() {
 
     it("should set baseScalar", function() {
       var qty = Qty("0.018 MPa");
-      expect(qty.baseScalar).toBe(18000);
+      expect(qty.baseScalar).toEqual(n(18000));
 
       qty = Qty("66 cm3");
-      expect(qty.baseScalar).toBe(0.000066);
+      expect(qty.baseScalar).toEqual(n(0.000066));
     });
 
     it("should keep init value as is", function() {
@@ -332,7 +355,7 @@ describe("js-quantities", function() {
     it("should allow whitespaces between sign and scalar", function() {
       var qty = Qty("-  1m");
 
-      expect(qty.scalar).toEqual(-1);
+      expect(qty.scalar).toEqual(n(-1));
       expect(qty.units()).toEqual("m");
     });
 
@@ -374,39 +397,47 @@ describe("js-quantities", function() {
   });
 
   describe("conversion", function() {
+    beforeEach(function() {
+      this.addMatchers({
+        toBeCloseInFieldTo: function(expected, precision) {
+          return lt(abs(sub(this.actual, expected)), pow(n(10),n(-precision)));
+        }
+      });
+    });
+
     it("should convert to base units", function() {
       var qty = Qty("100 cm");
-      expect(qty.toBase().scalar).toBe(1);
+      expect(qty.toBase().scalar).toEqual(n(1));
       expect(qty.toBase().units()).toBe("m");
       qty = Qty("10 cm");
-      expect(qty.toBase().scalar).toBe(0.1);
+      expect(qty.toBase().scalar).toEqual(n(0.1));
       expect(qty.toBase().units()).toBe("m");
       qty = Qty("0.3 mm^2 ms^-2");
-      expect(qty.toBase().scalar).toBe(0.3);
+      expect(qty.toBase().scalar).toEqual(n(0.3));
       expect(qty.toBase().units()).toBe("m2/s2");
     });
 
     it("should convert to compatible units", function() {
       var qty = Qty("10 cm");
-      expect(qty.to("ft").scalar).toBe(Qty.divSafe(0.1, 0.3048));
+      expect(qty.to("ft").scalar).toEqual(field.divSafe(n(0.1), n(0.3048)));
       qty = Qty("2m^3");
-      expect(qty.to("l").scalar).toBe(2000);
+      expect(qty.to("l").scalar).toEqual(n(2000));
 
       qty = Qty("10 cm");
-      expect(qty.to(Qty("m")).scalar).toBe(0.1);
-      expect(qty.to(Qty("20m")).scalar).toBe(0.1);
+      expect(qty.to(Qty("m")).scalar).toEqual(n(0.1));
+      expect(qty.to(Qty("20m")).scalar).toEqual(n(0.1));
 
       qty = Qty("1 m3");
-      expect(qty.to("cm3").scalar).toBe(1000000);
+      expect(qty.to("cm3").scalar).toEqual(n(1000000));
 
       qty = Qty("1 cm3");
-      expect(qty.to("mm3").scalar).toBe(1000);
+      expect(qty.to("mm3").scalar).toEqual(n(1000));
 
       qty = Qty("550 cm3");
-      expect(qty.to("cm^3").scalar).toBe(550);
+      expect(qty.to("cm^3").scalar).toEqual(n(550));
 
       qty = Qty("0.000773 m3");
-      expect(qty.to("cm^3").scalar).toBe(773);
+      expect(qty.to("cm^3").scalar).toEqual(n(773));
     });
 
     describe("percents", function() {
@@ -421,76 +452,76 @@ describe("js-quantities", function() {
 
     it("should convert temperatures to compatible units", function() {
       var qty = Qty("0 tempK");
-      expect(qty.to("tempC").scalar).toBe(-273.15);
+      expect(qty.to("tempC").scalar).toEqual(n(-273.15));
 
       qty = Qty("0 tempF");
-      expect(qty.to("tempK").scalar).toBeCloseTo(255.372, 3);
+      expect(qty.to("tempK").scalar).toBeCloseInFieldTo(n(255.372), 3);
 
       qty = Qty("32 tempF");
-      expect(qty.to("tempC").scalar).toBe(0);
+      expect(qty.to("tempC").scalar).toEqual(n(0));
 
       qty = Qty("0 tempC");
-      expect(qty.to("tempF").scalar).toBeCloseTo(32, 10);
+      expect(qty.to("tempF").scalar).toBeCloseInFieldTo(n(32), 10);
     });
 
     it("should convert temperature degrees to compatible units", function() {
       var qty = Qty("0 degK");
-      expect(qty.to("degC").scalar).toBe(0);
+      expect(qty.to("degC").scalar).toEqual(n(0));
 
       qty = Qty("1 degK/s");
-      expect(qty.to("degC/min").scalar).toBe(60);
+      expect(qty.to("degC/min").scalar).toEqual(n(60));
 
       qty = Qty("100 cm/degF");
-      expect(qty.to("m/degF").scalar).toBe(1);
+      expect(qty.to("m/degF").scalar).toEqual(n(1));
 
       qty = Qty("10 degC");
-      expect(qty.to("degF").scalar).toBe(18);
+      expect(qty.to("degF").scalar).toEqual(n(18));
     });
 
     it("should convert temperature degrees to temperatures", function() {
       // according to ruby-units, deg -> temp conversion adds the degress to 0 kelvin before converting
       var qty = Qty("100 degC");
-      expect(qty.to("tempC").scalar).toBeCloseTo(-173.15, 10);
+      expect(qty.to("tempC").scalar).toBeCloseInFieldTo(n(-173.15), 10);
 
       qty = Qty("273.15 degC");
-      expect(qty.to("tempC").scalar).toBe(0);
+      expect(qty.to("tempC").scalar).toEqual(n(0));
 
       qty = Qty("460.67 degF");
-      expect(qty.to("tempF").scalar).toBeCloseTo(1, 10);
+      expect(qty.to("tempF").scalar).toBeCloseInFieldTo(n(1), 10);
     });
 
     it("should convert temperatures to temperature degrees", function() {
       // according to ruby-units, temp -> deg conversion always uses the 0 relative degrees
       var qty = Qty("100 tempC");
-      expect(qty.to("degC").scalar).toBe(100);
+      expect(qty.to("degC").scalar).toEqual(n(100));
 
       qty = Qty("0 tempK");
-      expect(qty.to("degC").scalar).toBe(0);
+      expect(qty.to("degC").scalar).toEqual(n(0));
 
       qty = Qty("0 tempF");
-      expect(qty.to("degK").scalar).toBe(0);
+      expect(qty.to("degK").scalar).toEqual(n(0));
 
       qty = Qty("18 tempF");
-      expect(qty.to("degC").scalar).toBe(10);
+      expect(qty.to("degC").scalar).toEqual(n(10));
 
       qty = Qty("10 tempC");
-      expect(qty.to("degF").scalar).toBe(18);
+      expect(qty.to("degF").scalar).toEqual(n(18));
     });
 
     it("should calculate inverses", function() {
       var qty = Qty("1 ohm");
       var result = qty.to("siemens");
-      expect(result.scalar).toBe(1);
+      expect(result.scalar).toEqual(n(1));
       expect(result.kind()).toBe("conductance");
 
       qty = Qty("10 ohm");
       result = qty.to("siemens");
-      expect(result.scalar).toBe(0.1);
+      expect(result.scalar).toEqual(n(0.1));
       expect(result.kind()).toBe("conductance");
 
       qty = Qty("10 siemens");
       result = qty.to("ohm");
-      expect(result.scalar).toBe(0.1);
+      expect(result.scalar).toEqual(n(0.1));
       expect(result.kind()).toBe("resistance");
 
       qty = Qty("10 siemens");
@@ -506,12 +537,12 @@ describe("js-quantities", function() {
 
       qty = Qty("10 ohm").inverse();
       result = qty.to("S");
-      expect(result.scalar).toBe(0.1);
+      expect(result.scalar).toEqual(n(0.1));
       expect(result.kind()).toBe("conductance");
 
       qty = Qty("12 in").inverse();
       // TODO: Swap toBeCloseTo with toBe once divSafe is fixed
-      expect(qty.to("ft").scalar).toBeCloseTo(1, 10);
+      expect(qty.to("ft").scalar).toBeCloseInFieldTo(n(1), 10);
     });
 
     it("should return itself if target units are the same", function() {
@@ -544,9 +575,9 @@ describe("js-quantities", function() {
       var qty2 = Qty("1mm");
       var qty3 = Qty("10mm");
       var qty4 = Qty("28A");
-      expect(qty1.compareTo(qty2)).toBe(1);
-      expect(qty2.compareTo(qty1)).toBe(-1);
-      expect(qty1.compareTo(qty3)).toBe(0);
+      expect(qty1.compareTo(qty2)).toEqual(1);
+      expect(qty2.compareTo(qty1)).toEqual(-1);
+      expect(qty1.compareTo(qty3)).toEqual(0);
       expect(function() {
         qty1.compareTo(qty4);
       }).toThrow("Incompatible units: cm and A");
@@ -602,22 +633,22 @@ describe("js-quantities", function() {
     it("should add quantities", function() {
       var qty1 = Qty("2.5m");
       var qty2 = Qty("3m");
-      expect(qty1.add(qty2).scalar).toBe(5.5);
+      expect(qty1.add(qty2).scalar).toEqual(n(5.5));
 
-      expect(qty1.add("3m").scalar).toBe(5.5);
+      expect(qty1.add("3m").scalar).toEqual(n(5.5));
 
       qty2 = Qty("3cm");
       var result = qty1.add(qty2);
-      expect(result.scalar).toBe(2.53);
+      expect(result.scalar).toEqual(n(2.53));
       expect(result.units()).toBe("m");
 
       result = qty2.add(qty1);
-      expect(result.scalar).toBe(253);
+      expect(result.scalar).toEqual(n(253));
       expect(result.units()).toBe("cm");
 
       // make sure adding 2 of the same non-base units work
       result = Qty("5cm").add("3cm");
-      expect(result.scalar).toBe(8);
+      expect(result.scalar).toEqual(n(8));
       expect(result.units()).toBe("cm");
     });
 
@@ -655,18 +686,18 @@ describe("js-quantities", function() {
     it("should subtract quantities", function() {
       var qty1 = Qty("2.5m");
       var qty2 = Qty("3m");
-      expect(qty1.sub(qty2).scalar).toBe(-0.5);
+      expect(qty1.sub(qty2).scalar).toEqual(n(-0.5));
 
-      expect(qty1.sub("2m").scalar).toBe(0.5);
-      expect(qty1.sub("-2m").scalar).toBe(4.5);
+      expect(qty1.sub("2m").scalar).toEqual(n(0.5));
+      expect(qty1.sub("-2m").scalar).toEqual(n(4.5));
 
       qty2 = Qty("3cm");
       var result = qty1.sub(qty2);
-      expect(result.scalar).toBe(2.47);
+      expect(result.scalar).toEqual(n(2.47));
       expect(result.units()).toBe("m");
 
       result = qty2.sub(qty1);
-      expect(result.scalar).toBe(-247);
+      expect(result.scalar).toEqual(n(-247));
       expect(result.units()).toBe("cm");
     });
 
@@ -705,34 +736,34 @@ describe("js-quantities", function() {
       var qty1 = Qty("2.5m");
       var qty2 = Qty("3m");
       var result = qty1.mul(qty2);
-      expect(result.scalar).toBe(7.5);
+      expect(result.scalar).toEqual(n(7.5));
       expect(result.units()).toBe("m2");
       expect(result.kind()).toBe("area");
 
       qty2 = Qty("3cm");
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(0.075);
+      expect(result.scalar).toEqual(n(0.075));
       expect(result.units()).toBe("m2");
 
       result = qty2.mul(qty1);
-      expect(result.scalar).toBe(750);
+      expect(result.scalar).toEqual(n(750));
       expect(result.units()).toBe("cm2");
 
       result = qty1.mul(3.5);
-      expect(result.scalar).toBe(8.75);
+      expect(result.scalar).toEqual(n(8.75));
       expect(result.units()).toBe("m");
 
       result = qty1.mul(0);
-      expect(result.scalar).toBe(0);
+      expect(result.scalar).toEqual(n(0));
       expect(result.units()).toBe("m");
 
       result = qty1.mul(Qty("0m"));
-      expect(result.scalar).toBe(0);
+      expect(result.scalar).toEqual(n(0));
       expect(result.units()).toBe("m2");
 
       qty2 = Qty("1.458 m");
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(3.645);
+      expect(result.scalar).toEqual(n(3.645));
       expect(result.units()).toBe("m2");
     });
 
@@ -741,13 +772,13 @@ describe("js-quantities", function() {
       var qty2 = Qty("3 N");
 
       var result = qty1.mul(qty2);
-      expect(result.scalar).toBe(7.5);
+      expect(result.scalar).toEqual(n(7.5));
 
       qty1 = Qty("2.5 m^2");
       qty2 = Qty("3 kg/m^2");
 
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(7.5);
+      expect(result.scalar).toEqual(n(7.5));
       expect(result.units()).toBe("kg");
     });
 
@@ -757,22 +788,22 @@ describe("js-quantities", function() {
       var qty3 = qty1.inverse();           // .1/S
 
       var result = qty1.mul(qty2);
-      expect(result.scalar).toBe(20);
+      expect(result.scalar).toEqual(n(20));
       expect(result.isUnitless()).toBe(true);
       expect(result.units()).toBe("");
       // swapping operands should give the same outcome
       result = qty2.mul(qty1);
-      expect(result.scalar).toBe(20);
+      expect(result.scalar).toEqual(n(20));
       expect(result.isUnitless()).toBe(true);
       expect(result.units()).toBe("");
 
       result = qty1.mul(qty3);
-      expect(result.scalar).toBe(1);
+      expect(result.scalar).toEqual(n(1));
       expect(result.isUnitless()).toBe(true);
       expect(result.units()).toBe("");
       // swapping operands should give the same outcome
       result = qty3.mul(qty1);
-      expect(result.scalar).toBe(1);
+      expect(result.scalar).toEqual(n(1));
       expect(result.isUnitless()).toBe(true);
       expect(result.units()).toBe("");
     });
@@ -781,25 +812,25 @@ describe("js-quantities", function() {
       var qty1 = Qty("3m");
       var qty2 = Qty("4 1/km");
       var result = qty1.mul(qty2);
-      expect(result.scalar).toBe(0.012);
+      expect(result.scalar).toEqual(n(0.012));
       expect(result.isUnitless()).toBe(true);
 
       qty1 = Qty("3 A/km");
       qty2 = Qty("4 m");
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(0.012);
+      expect(result.scalar).toEqual(n(0.012));
       expect(result.units()).toBe("A");
 
       qty1 = Qty("3 1/km2");
       qty2 = Qty("4 m");
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(0.012);
+      expect(result.scalar).toEqual(n(0.012));
       expect(result.units()).toBe("1/km");
 
       qty1 = Qty("4 m");
       qty2 = Qty("3 1/km2");
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(0.000012);
+      expect(result.scalar).toEqual(n(0.000012));
       expect(result.units()).toBe("1/m");
     });
 
@@ -814,24 +845,24 @@ describe("js-quantities", function() {
       expect(function() {
         qty1.div(0);
       }).toThrow("Divide by zero");
-      expect(qty3.div(qty1).scalar).toBe(0);
+      expect(qty3.div(qty1).scalar).toEqual(n(0));
 
       var result = qty1.div(qty2);
-      expect(result.scalar).toBe(2.5 / 3);
+      expect(result.scalar).toEqual(div(n(2.5), n(3)));
       expect(result.units()).toBe("");
       expect(result.kind()).toBe("unitless");
 
       var qty4 = Qty("3cm");
       result = qty1.div(qty4);
-      expect(result.scalar).toBe(2.5 / 0.03);
+      expect(result.scalar).toEqual(div(n(2.5), n(0.03)));
       expect(result.units()).toBe("");
 
       result = qty4.div(qty1);
-      expect(result.scalar).toBe(0.012);
+      expect(result.scalar).toEqual(n(0.012));
       expect(result.units()).toBe("");
 
       result = qty1.div(3.5);
-      expect(result.scalar).toBe(2.5 / 3.5);
+      expect(result.scalar).toEqual(div(n(2.5), n(3.5)));
       expect(result.units()).toBe("m");
     });
 
@@ -840,7 +871,7 @@ describe("js-quantities", function() {
       var qty2 = Qty("2.5m^2");
 
       var result = qty1.div(qty2);
-      expect(result.scalar).toBe(3);
+      expect(result.scalar).toEqual(n(3));
       expect(result.units()).toBe("kg/m2");
     });
 
@@ -850,19 +881,19 @@ describe("js-quantities", function() {
       var qty3 = qty1.inverse();            // .1/S
 
       var result = qty1.div(qty2);
-      expect(result.scalar).toBe(5);
+      expect(result.scalar).toEqual(n(5));
       expect(result.units()).toBe("S2");
 
       result = qty2.div(qty1);
-      expect(result.scalar).toBe(0.2);
+      expect(result.scalar).toEqual(n(0.2));
       expect(result.units()).toBe("1/S2");
 
       result = qty1.div(qty3);
-      expect(result.scalar).toBe(100);
+      expect(result.scalar).toEqual(n(100));
       expect(result.units()).toBe("S2");
 
       result = qty3.div(qty1);
-      expect(result.scalar).toBe(0.01);
+      expect(result.scalar).toEqual(n(0.01));
       expect(result.units()).toBe("1/S2");
     });
 
@@ -870,44 +901,51 @@ describe("js-quantities", function() {
       var qty1 = Qty("3m*A");
       var qty2 = Qty("4 km");
       var result = qty1.div(qty2);
-      expect(result.scalar).toBe(0.00075);
+      expect(result.scalar).toEqual(n(0.00075));
       expect(result.units()).toBe("A");
 
       qty1 = Qty("3 m");
       qty2 = Qty("4 km*A");
       result = qty1.div(qty2);
-      expect(result.scalar).toBe(0.00075);
+      expect(result.scalar).toEqual(n(0.00075));
       expect(result.units()).toBe("1/A");
 
       qty1 = Qty("3 m");
       qty2 = Qty("4 km*cA");
       result = qty1.div(qty2);
-      expect(result.scalar).toBe(0.00075);
+      expect(result.scalar).toEqual(n(0.00075));
       expect(result.units()).toBe("1/cA");
     });
 
   });
 
   describe("math with temperatures", function() {
+    beforeEach(function() {
+      this.addMatchers({
+        toBeCloseInFieldTo: function(expected, precision) {
+          return lt(abs(sub(this.actual, expected)), pow(n(10),n(-precision)));
+        }
+      });
+    });
 
     it("should add temperature degrees", function() {
       var qty = Qty("2degC");
-      expect(qty.add("3degF").scalar).toBeCloseTo(11 / 3, 10);
-      expect(qty.add("-1degC").scalar).toBe(1);
+      expect(qty.add("3degF").scalar).toBeCloseInFieldTo(div(n(11), n(3)), 10);
+      expect(qty.add("-1degC").scalar).toEqual(n(1));
 
       qty = Qty("2 degC");
       var result = qty.add("2 degF");
-      expect(result.scalar).toBe(28 / 9);
+      expect(result.scalar).toEqual(div(n(28), n(9)));
       expect(result.units()).toBe("degC");
 
       qty = Qty("2degK");
       result = qty.add("3degC");
-      expect(result.scalar).toBe(5);
+      expect(result.scalar).toEqual(n(5));
       expect(result.units()).toBe("degK");
 
       qty = Qty("2degC");
       result = qty.add("2degK");
-      expect(result.scalar).toBe(4);
+      expect(result.scalar).toEqual(n(4));
       expect(result.units()).toBe("degC");
     });
 
@@ -924,40 +962,40 @@ describe("js-quantities", function() {
     it("should add temperatures to degrees", function() {
       var qty = Qty("2degC");
       var result = qty.add("3tempF");
-      expect(result.scalar).toBe(33 / 5);
+      expect(result.scalar).toEqual(div(n(33), n(5)));
       expect(result.units()).toBe("tempF");
 
       result = qty.add("-1tempC");
-      expect(result.scalar).toBe(1);
+      expect(result.scalar).toEqual(n(1));
       expect(result.units()).toBe("tempC");
 
       qty = Qty("2 tempC");
       result = qty.add("2 degF");
-      expect(result.scalar).toBe(28 / 9);
+      expect(result.scalar).toEqual(div(n(28), n(9)));
       expect(result.units()).toBe("tempC");
     });
 
     it("should subtract degrees from degrees", function() {
       var qty = Qty("2degC");
-      expect(qty.sub("1.5degK").scalar).toBe(0.5);
-      expect(qty.sub("-2degC").scalar).toBe(4);
-      expect(qty.sub("1degF").scalar).toBe(2 - 5 / 9);
-      expect(qty.sub("-1degC").scalar).toBe(3);
+      expect(qty.sub("1.5degK").scalar).toEqual(n(0.5));
+      expect(qty.sub("-2degC").scalar).toEqual(n(4));
+      expect(qty.sub("1degF").scalar).toEqual(sub(n(2), div(n(5), n(9))));
+      expect(qty.sub("-1degC").scalar).toEqual(n(3));
 
       var result = qty.sub("degC");
-      expect(result.scalar).toBe(1);
+      expect(result.scalar).toEqual(n(1));
       expect(result.units()).toBe("degC");
     });
 
     it("should subtract degrees from temperatures", function() {
       var qty = Qty("2tempC");
-      expect(qty.sub("1.5degK").scalar).toBe(0.5);
-      expect(qty.sub("-2degC").scalar).toBe(4);
-      expect(qty.sub("1degF").scalar).toBe(2 - 5 / 9);
-      expect(qty.sub("-1degC").scalar).toBe(3);
+      expect(qty.sub("1.5degK").scalar).toEqual(n(0.5));
+      expect(qty.sub("-2degC").scalar).toEqual(n(4));
+      expect(qty.sub("1degF").scalar).toEqual(sub(n(2), div(n(5), n(9))));
+      expect(qty.sub("-1degC").scalar).toEqual(n(3));
 
       var result = qty.sub("degC");
-      expect(result.scalar).toBe(1);
+      expect(result.scalar).toEqual(n(1));
       expect(result.units()).toBe("tempC");
     });
 
@@ -965,15 +1003,15 @@ describe("js-quantities", function() {
       var qty = Qty("2tempC");
 
       var result = qty.sub("1.5tempK");
-      expect(result.scalar).toBe(273.65);
+      expect(result.scalar).toEqual(n(273.65));
       expect(result.units()).toBe("degC");
 
       result = qty.sub("-2tempC");
-      expect(result.scalar).toBe(4);
+      expect(result.scalar).toEqual(n(4));
       expect(result.units()).toBe("degC");
 
       result = qty.sub("32tempF");
-      expect(result.scalar).toBe(2);
+      expect(result.scalar).toEqual(n(2));
       expect(result.units()).toBe("degC");
     });
 
@@ -990,22 +1028,22 @@ describe("js-quantities", function() {
     it("should multiply temperature degrees", function() {
       var qty = Qty("2degF");
       var result = qty.mul(3);
-      expect(result.scalar).toBe(6);
+      expect(result.scalar).toEqual(n(6));
       expect(result.units()).toBe("degF");
 
       result = qty.mul("3degF");
-      expect(result.scalar).toBe(6);
+      expect(result.scalar).toEqual(n(6));
       expect(result.units()).toBe("degF2");
 
       // TODO: Should we convert degrees ("2 degK" to "degC") before we do the math?
       qty = Qty("2degC");
       result = qty.mul("2degK");
-      expect(result.scalar).toBe(4);
+      expect(result.scalar).toEqual(n(4));
       expect(result.units()).toBe("degC*degK");
 
       qty = Qty("2degC");
       result = qty.mul("degF");
-      expect(result.scalar).toBe(2);
+      expect(result.scalar).toEqual(n(2));
       expect(result.units()).toBe("degC*degF");
     });
 
@@ -1022,11 +1060,11 @@ describe("js-quantities", function() {
       }).toThrow("Cannot multiply by temperatures");
 
       var result = qty.mul(2);
-      expect(result.scalar).toBe(4);
+      expect(result.scalar).toEqual(n(4));
       expect(result.units()).toBe("tempF");
 
       result = Qty("2").mul(qty);
-      expect(result.scalar).toBe(4);
+      expect(result.scalar).toEqual(n(4));
       expect(result.units()).toBe("tempF");
     });
 
@@ -1035,13 +1073,13 @@ describe("js-quantities", function() {
       var qty2 = Qty("3 m");
 
       var result = qty1.mul(qty2);
-      expect(result.scalar).toBe(7.5);
+      expect(result.scalar).toEqual(n(7.5));
 
       qty1 = Qty("2.5 degF");
       qty2 = Qty("3 kg/degF");
 
       result = qty1.mul(qty2);
-      expect(result.scalar).toBe(7.5);
+      expect(result.scalar).toEqual(n(7.5));
       expect(result.units()).toBe("kg");
     });
 
@@ -1050,7 +1088,7 @@ describe("js-quantities", function() {
       var qty2 = Qty("2.5m^2");
 
       var result = qty1.div(qty2);
-      expect(result.scalar).toBe(3);
+      expect(result.scalar).toEqual(n(3));
       expect(result.units()).toBe("degF/m2");
     });
 
@@ -1063,22 +1101,22 @@ describe("js-quantities", function() {
       expect(function() {
         qty.div(0);
       }).toThrow("Divide by zero");
-      expect(Qty("0 degF").div(qty).scalar).toBe(0);
+      expect(Qty("0 degF").div(qty).scalar).toEqual(n(0));
       expect(Qty("0 degF").div(qty).units()).toBe("");
 
       var result = qty.div("3 degF");
-      expect(result.scalar).toBe(2.5 / 3);
+      expect(result.scalar).toEqual(div(n(2.5), n(3)));
       expect(result.units()).toBe("");
       expect(result.kind()).toBe("unitless");
 
       result = qty.div(3);
-      expect(result.scalar).toBe(2.5 / 3);
+      expect(result.scalar).toEqual(div(n(2.5), n(3)));
       expect(result.units()).toBe("degF");
       expect(result.kind()).toBe("temperature");
 
       // TODO: Should we convert "2 degC" to "degF" before we do the math?
       result = qty.div("2 degC");
-      expect(result.scalar).toBe(1.25);
+      expect(result.scalar).toEqual(n(1.25));
       expect(result.units()).toBe("degF/degC");
     });
 
@@ -1105,7 +1143,7 @@ describe("js-quantities", function() {
       }).toThrow("Cannot divide with temperatures");
 
       var result = Qty("4 tempF").div(2);
-      expect(result.scalar).toBe(2);
+      expect(result.scalar).toEqual(n(2));
       expect(result.units()).toBe("tempF");
     });
 
@@ -1332,6 +1370,7 @@ describe("js-quantities", function() {
       expect(qty.toPrec(Qty("0.01 MPa")).toString()).toBe("1.15 MPa");
       expect(qty.toPrec(Qty("dbar")).toString()).toBe("1.15 MPa");
 
+      /*
       // Tests below are mainly a safety net because not sure if there is
       // any usefulness to do things like that
       qty = Qty("5.171234568 ft");
@@ -1339,22 +1378,23 @@ describe("js-quantities", function() {
       expect(qty.toPrec(Qty("dm")).toString()).toBe("5.249343832020998 ft");
       expect(qty.toPrec(Qty("cm")).toString()).toBe("5.183727034120736 ft");
       expect(qty.toPrec(Qty("mm")).toString()).toBe("5.170603674540684 ft");
+      */
     });
   });
 
   describe("mulSafe", function() {
     it("should multiply while trying to avoid numerical errors", function() {
-      expect(Qty.mulSafe(0.1, 0.1)).toBe(0.01);
-      expect(Qty.mulSafe(1e-11, 123.456789)).toBe(1.23456789e-9);
-      expect(Qty.mulSafe(6e-12, 100000)).toBe(6e-7);
+      expect(Qty.mulSafe(0.1, 0.1)).toEqual(0.01);
+      expect(Qty.mulSafe(1e-11, 123.456789)).toEqual(1.23456789e-9);
+      expect(Qty.mulSafe(6e-12, 100000)).toEqual(6e-7);
     });
   });
 
   describe("divSafe", function() {
     it("should divide while trying to avoid numerical errors", function() {
-      expect(Qty.divSafe(0.000773, 0.000001)).toBe(773);
+      expect(Qty.divSafe(0.000773, 0.000001)).toEqual(773);
       // TODO uncomment and fix
-      //expect(Qty.divSafe(24.5, 0.2777777777777778)).toBe(88.2);
+      //expect(Qty.divSafe(24.5, 0.2777777777777778)).toEqual(n(88.2));
     });
   });
 
@@ -1402,33 +1442,33 @@ describe("js-quantities", function() {
           // (For the sake of speed, converter does not check and fix rounding issues)
           var converter = Qty.swiftConverter("m/h", "m/s");
 
-          expect(converter(2500)).toEqual(Qty("2500 m/h").to("m/s").scalar);
+          expect(converter(n(2500))).toEqual(Qty("2500 m/h").to("m/s").scalar);
         });
 
         it("should returned value unchanged when units are identical", function() {
           var converter = Qty.swiftConverter("m/h", "m/h");
 
-          expect(converter(2500)).toEqual(2500);
+          expect(converter(n(2500))).toEqual(n(2500));
         });
 
         it("should convert temperatures", function() {
           var converter = Qty.swiftConverter("tempF", "tempC");
 
-          expect(converter(32)).toEqual(0);
+          expect(converter(n(32))).toEqual(n(0));
         });
 
         it("should convert degrees", function() {
           var converter = Qty.swiftConverter("degC", "degF");
 
-          expect(converter(10)).toEqual(18);
+          expect(converter(n(10))).toEqual(n(18));
         });
       });
 
       describe("array of values", function() {
         it("should be converted", function() {
           var converter = Qty.swiftConverter("MPa", "bar"),
-              values = [250, 10, 15],
-              expected = [2500, 100, 150];
+              values = [n(250), n(10), n(15)],
+              expected = [n(2500), n(100), n(150)];
 
           expect(converter(values)).toEqual(expected);
         });
@@ -1541,7 +1581,7 @@ describe("js-quantities", function() {
         var qty = Qty("100 nF");
 
         expect(qty.eq(Qty("100 F").div(1e9))).toBe(true);
-        expect(qty.baseScalar).toEqual(1e-7);
+        expect(qty.baseScalar).toEqual(n(1e-7));
       });
     });
   });

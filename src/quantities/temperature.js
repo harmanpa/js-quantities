@@ -2,6 +2,7 @@ import Qty from "./constructor.js";
 import { UNITY_ARRAY } from "./definitions.js";
 import QtyError from "./error.js";
 import { assign, compareArray } from "./utils.js";
+import { Field } from "./fields.js";
 
 assign(Qty.prototype, {
   isDegrees: function() {
@@ -21,17 +22,17 @@ export function subtractTemperatures(lhs,rhs) {
   var lhsUnits = lhs.units();
   var rhsConverted = rhs.to(lhsUnits);
   var dstDegrees = Qty(getDegreeUnits(lhsUnits));
-  return Qty({"scalar": lhs.scalar - rhsConverted.scalar, "numerator": dstDegrees.numerator, "denominator": dstDegrees.denominator});
+  return Qty({"scalar": Field.sub(lhs.scalar, rhsConverted.scalar), "numerator": dstDegrees.numerator, "denominator": dstDegrees.denominator});
 }
 
 export function subtractTempDegrees(temp,deg) {
   var tempDegrees = deg.to(getDegreeUnits(temp.units()));
-  return Qty({"scalar": temp.scalar - tempDegrees.scalar, "numerator": temp.numerator, "denominator": temp.denominator});
+  return Qty({"scalar": Field.sub(temp.scalar, tempDegrees.scalar), "numerator": temp.numerator, "denominator": temp.denominator});
 }
 
 export function addTempDegrees(temp,deg) {
   var tempDegrees = deg.to(getDegreeUnits(temp.units()));
-  return Qty({"scalar": temp.scalar + tempDegrees.scalar, "numerator": temp.numerator, "denominator": temp.denominator});
+  return Qty({"scalar": Field.add(temp.scalar, tempDegrees.scalar), "numerator": temp.numerator, "denominator": temp.denominator});
 }
 
 function getDegreeUnits(units) {
@@ -52,6 +53,8 @@ function getDegreeUnits(units) {
   }
 }
 
+var five = Field.fromNumber(5);
+var nine = Field.fromNumber(9);
 export function toDegrees(src,dst) {
   var srcDegK = toDegK(src);
   var dstUnits = dst.units();
@@ -64,10 +67,10 @@ export function toDegrees(src,dst) {
     dstScalar = srcDegK.scalar ;
   }
   else if (dstUnits === "degF") {
-    dstScalar = srcDegK.scalar * 9 / 5;
+    dstScalar = Field.div(Field.mul(srcDegK.scalar, nine), five);
   }
   else if (dstUnits === "degR") {
-    dstScalar = srcDegK.scalar * 9 / 5;
+    dstScalar = Field.dive(Field.mul(srcDegK.scalar, nine), five);
   }
   else {
     throw new QtyError("Unknown type for degree conversion to: " + dstUnits);
@@ -89,10 +92,10 @@ function toDegK(qty) {
     q = qty.scalar;
   }
   else if (units === "tempF") {
-    q = qty.scalar * 5 / 9;
+    q = Field.div(Field.mul(qty.scalar, five),nine);
   }
   else if (units === "tempR") {
-    q = qty.scalar * 5 / 9;
+    q = Field.div(Field.mul(qty.scalar, five),nine);
   }
   else {
     throw new QtyError("Unknown type for temp conversion from: " + units);
@@ -109,13 +112,13 @@ export function toTemp(src,dst) {
     dstScalar = src.baseScalar;
   }
   else if (dstUnits === "tempC") {
-    dstScalar = src.baseScalar - 273.15;
+    dstScalar = Field.sub(src.baseScalar, Field.fromNumber(273.15));
   }
   else if (dstUnits === "tempF") {
-    dstScalar = (src.baseScalar * 9 / 5) - 459.67;
+    dstScalar = Field.sub(Field.div(Field.mul(src.baseScalar, nine), five), Field.fromNumber(459.67));
   }
   else if (dstUnits === "tempR") {
-    dstScalar = src.baseScalar * 9 / 5;
+    dstScalar = Field.div(Field.mul(src.baseScalar, nine), five);
   }
   else {
     throw new QtyError("Unknown type for temp conversion to: " + dstUnits);
@@ -134,13 +137,13 @@ export function toTempK(qty) {
     q = qty.scalar;
   }
   else if (units === "tempC") {
-    q = qty.scalar + 273.15;
+    q = Field.add(qty.scalar, Field.fromNumber(273.15));
   }
   else if (units === "tempF") {
-    q = (qty.scalar + 459.67) * 5 / 9;
+    q = Field.div(Field.mul(Field.add(qty.scalar, Field.fromNumber(459.67)), five), nine);
   }
   else if (units === "tempR") {
-    q = qty.scalar * 5 / 9;
+    q = Field.div(Field.mul(qty.scalar, five), nine);
   }
   else {
     throw new QtyError("Unknown type for temp conversion from: " + units);
