@@ -1,4 +1,4 @@
-import { Field } from "./fields.js";
+import { Field, fields } from "./fields.js";
 import { UNITY_ARRAY } from "./definitions.js";
 import { unitSignature } from "./signature.js";
 import parse from "./parse.js";
@@ -71,7 +71,8 @@ export default function Qty(initValue, initUnits) {
 Qty.prototype = {
   // Properly set up constructor
   constructor: Qty,
-  field: Field
+  field: Field,
+  fields: fields
 };
 
 /**
