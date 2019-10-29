@@ -1466,6 +1466,17 @@ describe("js-quantities", function() {
         Qty.getUnits("bogusKind");
       }).toThrowError("Kind not recognized");
     });
+    it("should be able to read all units returned", function() {
+      expect(
+        function() {
+          Qty.getKinds().forEach(function(kind) {
+            Qty.getUnits(kind).forEach(function(unit) {
+              var qty = Qty(unit);
+            });
+          })
+        }
+      ).nothing();
+    });
   });
 
   describe("Qty.getAliases", function() {
