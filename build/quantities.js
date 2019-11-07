@@ -1,4 +1,3 @@
-`echo '/*'; cat LICENSE; echo '*/'`
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
@@ -251,7 +250,7 @@
     /* area */
     "<hectare>":[["hectare"], 10000, "area", ["<meter>","<meter>"]],
     "<acre>":[["acre","acres"], 4046.85642, "area", ["<meter>","<meter>"]],
-    "<sqft>":[["sqft"], 1, "area", ["<foot>","<foot>"]],
+    "<sqft>":[["sqft"], 0.3048*0.3048, "area", ["<meter>","<meter>"]],
 
     /* volume */
     "<liter>" : [["l","L","liter","liters","litre","litres"], 0.001, "volume", ["<meter>","<meter>","<meter>"]],
@@ -275,6 +274,7 @@
     "<mph>" : [["mph"], 0.44704, "speed", ["<meter>"], ["<second>"]],
     "<knot>" : [["kt","kn","kts","knot","knots"], 0.514444444, "speed", ["<meter>"], ["<second>"]],
     "<fps>"  : [["fps"], 0.3048, "speed", ["<meter>"], ["<second>"]],
+    "<ipm>"  : [["ipm"], 1.524, "speed", ["<meter>"], ["<second>"]],
 
     /* acceleration */
     "<gee>" : [["gee"], 9.80665, "acceleration", ["<meter>"], ["<second>","<second>"]],
