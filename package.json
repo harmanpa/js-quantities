@@ -32,6 +32,9 @@
   ],
   "license": "MIT",
   "scripts": {
+    "build": "npm run build-umd && npm run build-es",
+    "build-umd": "rollup --file=build/quantities.js --format=umd --name=Qty --banner=\"`echo '/*'; cat LICENSE; echo '*/'`\" src/quantities.js",
+    "build-es": "rollup --file=build/quantities.esm.js --format=es --name=Qty --banner=\"`echo '/*'; cat LICENSE; echo '*/'`\" src/quantities.js",
     "test": "jasmine-node spec/"
   },
   "bugs": {
