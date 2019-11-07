@@ -103,7 +103,7 @@ export var UNITS = {
   "<mph>" : [["mph"], 0.44704, "speed", ["<meter>"], ["<second>"]],
   "<knot>" : [["kt","kn","kts","knot","knots"], 0.514444444, "speed", ["<meter>"], ["<second>"]],
   "<fps>"  : [["fps"], 0.3048, "speed", ["<meter>"], ["<second>"]],
-  "<ipm>"  : [["ipm"], 1.524, "speed", ["<meter>"], ["<second>"]],
+  "<ipm>"  : [["ipm"], 0.0254/60, "speed", ["<meter>"], ["<second>"]],
 
   /* acceleration */
   "<gee>" : [["gee"], 9.80665, "acceleration", ["<meter>"], ["<second>","<second>"]],

@@ -94,7 +94,7 @@ function assertValidConstructorArgs(value, units) {
           isQty(value)    ||
           isDefinitionObject(value))) {
       throw new QtyError("Only string, number or quantity accepted as " +
-                         "single initialization value");
+                         "single initialization value: " + value);
     }
   }
 }
